@@ -4,4 +4,4 @@
     android:layout_height="match_parent"
     android:background="#1a1a2e"
     android:orientation="vertical"
-    android:padding="20dp">
+    android:padding="20dp" />
