@@ -42,10 +42,16 @@ jobs:
 
       - name: Build APK
         working-directory: .
-        env:
-          BUBBLEWRAP_JDK: ${{ steps.setup-java.outputs.java-home }}
         run: |
-          echo "BUBBLEWRAP_JDK=$BUBBLEWRAP_JDK"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq expect
+          echo 'spawn bubblewrap init --manifest=manifest.json --non-interactive
+          expect "Do you want Bubblewrap to install the JDK"
+          send "n\r"
+          expect "Path to your existing JDK 17"
+          send "/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20.1-1/x64\r"
+          expect eof' > init.exp
+          expect init.exp
           bubblewrap build --skipSigning
         timeout-minutes: 20
 
