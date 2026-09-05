@@ -48,8 +48,8 @@ jobs:
           echo "JAVA_HOME=$JAVA_HOME"
           echo "BUBBLEWRAP_JDK=$BUBBLEWRAP_JDK"
           java -version
-          bubblewrap init --manifest=manifest.json
-          bubblewrap build --skipSigning
+          printf "No\n" | bubblewrap init --manifest=manifest.json
+          printf "No\n" | bubblewrap build --skipSigning
         timeout-minutes: 20
 
       - name: Upload APK
