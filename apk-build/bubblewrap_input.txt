@@ -1,0 +1,6 @@
+n
+C:\Users\ASUS\AppData\Local\Programs\Eclipse Adoptium\jdk-17.0.20.101-hotspot
+
+debug
+android
+n
