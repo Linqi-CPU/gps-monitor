@@ -42,8 +42,11 @@ jobs:
         run: |
           echo "JAVA_HOME=$JAVA_HOME"
           java -version
-          gradle assembleRelease --stacktrace --info --debug 2>&1 | tee build.log
-          cat build.log | tail -100
+          gradle tasks --all | grep -i assemble || true
+          gradle clean
+          gradle assembleRelease
+          echo "=== APK output files ==="
+          find app/build/outputs -name "*.apk" -type f 2>/dev/null || true
         timeout-minutes: 20
 
       - name: List APK outputs
