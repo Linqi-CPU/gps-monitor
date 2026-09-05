@@ -33,10 +33,9 @@ jobs:
         uses: android-actions/setup-android@v2
         with:
           api-level: 34
-          build-tools: 34.0.0
 
-      - name: Install Gradle
-        run: npm install -g gradle
+      - name: Install Build Tools
+        run: yes | sdkmanager "build-tools;34.0.0"
 
       - name: Build APK with Gradle
         working-directory: .
@@ -58,6 +57,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gps-monitor-apk
-          path: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/
