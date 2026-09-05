@@ -30,8 +30,10 @@ jobs:
 
       - name: Initialize TWA project
         working-directory: ./apk-build
+        env:
+          JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20.1-1/x64
         run: |
-          BUBBLEWRAP_JDK="${{ env.JAVA_HOME }}" bubblewrap init --manifest=manifest.json --non-interactive
+          printf 'n\n%s\n\ndebug\nandroid\nn\n' "$JAVA_HOME" | bubblewrap init --manifest=manifest.json
         timeout-minutes: 10
 
       - name: Build APK

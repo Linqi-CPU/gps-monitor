@@ -1,0 +1,8 @@
+{
+  "jdkPath": "/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20.1-1/x64",
+  "projectPath": ".",
+  "manifestPath": "manifest.json",
+  "signingKeyPath": "",
+  "signingKeyAlias": "",
+  "skipSign": true
+}
