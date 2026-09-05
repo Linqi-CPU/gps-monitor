@@ -43,7 +43,8 @@ jobs:
         run: |
           echo "JAVA_HOME=$JAVA_HOME"
           java -version
-          gradle assembleRelease
+          gradle assembleRelease --stacktrace --info --debug 2>&1 | tee build.log
+          cat build.log | tail -100
         timeout-minutes: 20
 
       - name: Upload APK
