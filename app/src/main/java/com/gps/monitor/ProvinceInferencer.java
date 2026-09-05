@@ -5,21 +5,36 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ProvinceInferencer {
+    public enum Algorithm {
+        BOUNDS,     // 矩形边界框
+        VECTOR,     // 速度矢量+距离
+        HYBRID      // 两种对比，取更可信的
+    }
+
     private Context context;
     private List<Province> provinces;
     private GPSPoint lastPoint;
     private long lastSampleTime;
-    private static final long SAMPLE_INTERVAL_MS = 10000; // 10秒
-    private static final double EARTH_RADIUS = 6371000; // 地球半径（米）
+    private Algorithm currentAlgo;
+    private static final long SAMPLE_INTERVAL_MS = 10000;
+    private static final double EARTH_RADIUS = 6371000;
 
     public ProvinceInferencer(Context context) {
         this.context = context;
+        this.currentAlgo = Algorithm.BOUNDS; // 默认矩形
         init();
+    }
+
+    public void setAlgorithm(Algorithm algo) {
+        this.currentAlgo = algo;
+    }
+
+    public Algorithm getAlgorithm() {
+        return currentAlgo;
     }
 
     private void init() {
         provinces = new ArrayList<>();
-        // 用省会坐标作为省份中心，同时保留边界框
         provinces.add(new Province("北京", 116.4, 39.9, 115.4, 117.5, 39.4, 41.6));
         provinces.add(new Province("天津", 117.2, 39.1, 116.7, 118.0, 38.5, 40.3));
         provinces.add(new Province("河北", 114.5, 38.0, 113.0, 119.8, 36.0, 42.6));
@@ -54,102 +69,105 @@ public class ProvinceInferencer {
         provinces.add(new Province("台湾", 121.0, 23.5, 119.3, 122.0, 21.9, 25.3));
     }
 
-    /**
-     * 更新 GPS 点，返回推断结果
-     */
     public InferenceResult update(double lat, double lon, long timestamp) {
-        GPSPoint current = new GPSPoint(lat, lon, timestamp);
         InferenceResult result = new InferenceResult();
 
-        // 1. 如果距离上次采样不足10秒，直接返回最近省份（不推断方向）
-        if (lastPoint != null && (timestamp - lastSampleTime) < SAMPLE_INTERVAL_MS) {
-            result.currentProvince = findNearestProvince(lat, lon);
-            result.direction = "";
-            result.targetProvince = "";
-            result.confidence = 0.8f;
-            return result;
-        }
+        // 矩形算法
+        Province boundsResult = findProvinceByBounds(lat, lon);
+        result.boundsProvince = boundsResult != null ? boundsResult.name : "未知";
+        result.boundsDistance = boundsResult != null ? distanceToProvince(lat, lon, boundsResult) : -1;
 
-        // 2. 记录采样点
-        if (lastPoint != null) {
-            // 计算速度矢量（米/秒，方向角）
+        // 矢量算法
+        Province vectorResult = null;
+        String direction = "";
+        if (lastPoint != null && (timestamp - lastSampleTime) >= SAMPLE_INTERVAL_MS) {
             double distance = haversineDistance(lastPoint.lat, lastPoint.lon, lat, lon);
             long timeDiff = timestamp - lastPoint.timestamp;
             double speed = (timeDiff > 0) ? distance / (timeDiff / 1000.0) : 0;
             double bearing = calculateBearing(lastPoint.lat, lastPoint.lon, lat, lon);
 
-            // 3. 速度矢量正交投影，排除不可能省份
-            // 如果速度>5m/s（约18km/h），用方向过滤省份
             List<Province> candidates = provinces;
             if (speed > 5) {
                 candidates = filterByDirection(lastPoint.lat, lastPoint.lon, bearing, 60);
             }
-
-            // 4. 计算距离，找出最近的
-            Province nearest = findNearestInList(lat, lon, candidates);
-            result.currentProvince = nearest != null ? nearest.name : "未知区域";
-            result.confidence = 0.9f;
-
-            // 5. 预测方向：如果正朝某个省份边界移动，显示目标省份
+            vectorResult = findNearestInList(lat, lon, candidates);
             Province target = predictTargetProvince(lat, lon, bearing, speed);
-            if (target != null && !target.name.equals(result.currentProvince)) {
-                result.targetProvince = target.name;
-                result.direction = "→ " + target.name;
+            if (target != null && !target.name.equals(vectorResult != null ? vectorResult.name : "")) {
+                direction = "→ " + target.name;
             }
+            lastPoint = new GPSPoint(lat, lon, timestamp);
+            lastSampleTime = timestamp;
         } else {
-            result.currentProvince = findNearestProvince(lat, lon);
-            result.confidence = 0.7f;
+            if (lastPoint == null) {
+                lastPoint = new GPSPoint(lat, lon, timestamp);
+                lastSampleTime = timestamp;
+            }
+            vectorResult = findNearestProvince(lat, lon);
         }
 
-        lastPoint = current;
-        lastSampleTime = timestamp;
+        result.vectorProvince = vectorResult != null ? vectorResult.name : "未知";
+        result.direction = direction;
+
+        // 根据模式选择最终结果
+        switch (currentAlgo) {
+            case BOUNDS:
+                result.currentProvince = result.boundsProvince;
+                break;
+            case VECTOR:
+                result.currentProvince = result.vectorProvince;
+                break;
+            case HYBRID:
+                // 对比两种：如果差距大，取距离更近的；如果都在边界，用距离
+                if (!result.boundsProvince.equals(result.vectorProvince)) {
+                    // 不一致，取距离边界更近的
+                    result.currentProvince = result.boundsDistance < 0 ? result.vectorProvince : 
+                            result.boundsDistance < 10000 ? result.boundsProvince : result.vectorProvince;
+                    result.confidence = 0.5f; // 低置信度
+                } else {
+                    result.currentProvince = result.boundsProvince;
+                    result.confidence = 0.9f;
+                }
+                break;
+        }
         return result;
     }
 
-    /**
-     * 根据速度方向过滤省份：只保留在运动方向60度范围内的省份
-     */
+    // ---- 矩形边界算法 ----
+    private Province findProvinceByBounds(double lat, double lon) {
+        for (Province p : provinces) {
+            if (lon >= p.minLon && lon <= p.maxLon && lat >= p.minLat && lat <= p.maxLat) {
+                return p;
+            }
+        }
+        return null;
+    }
+
+    // ---- 矢量算法 ----
     private List<Province> filterByDirection(double lat, double lon, double bearing, double angleTolerance) {
         List<Province> filtered = new ArrayList<>();
         for (Province p : provinces) {
             double provBearing = calculateBearing(lat, lon, p.centerLat, p.centerLon);
             double angleDiff = Math.abs(bearing - provBearing);
             if (angleDiff > 180) angleDiff = 360 - angleDiff;
-            if (angleDiff <= angleTolerance) {
-                filtered.add(p);
-            }
+            if (angleDiff <= angleTolerance) filtered.add(p);
         }
         return filtered.isEmpty() ? provinces : filtered;
     }
 
-    /**
-     * 根据当前点和方向，预测目标省份
-     */
     private Province predictTargetProvince(double lat, double lon, double bearing, double speed) {
-        // 如果速度很慢，不预测
         if (speed < 2) return null;
-
-        // 沿着方向延伸 50km，看落在哪个省份
-        double targetDist = 50000; // 50km
-        double targetLat, targetLon;
+        double targetDist = 50000;
         double brng = Math.toRadians(bearing);
         double lat1 = Math.toRadians(lat);
         double lon1 = Math.toRadians(lon);
-
-        targetLat = Math.asin(Math.sin(lat1) * Math.cos(targetDist / EARTH_RADIUS) +
+        double targetLat = Math.asin(Math.sin(lat1) * Math.cos(targetDist / EARTH_RADIUS) +
                 Math.cos(lat1) * Math.sin(targetDist / EARTH_RADIUS) * Math.cos(brng));
-        targetLon = lon1 + Math.atan2(Math.sin(brng) * Math.sin(targetDist / EARTH_RADIUS) * Math.cos(lat1),
+        double targetLon = lon1 + Math.atan2(Math.sin(brng) * Math.sin(targetDist / EARTH_RADIUS) * Math.cos(lat1),
                 Math.cos(targetDist / EARTH_RADIUS) - Math.sin(lat1) * Math.sin(targetLat));
-
-        targetLat = Math.toDegrees(targetLat);
-        targetLon = Math.toDegrees(targetLon);
-
-        return findNearestProvince(targetLat, targetLon);
+        return findNearestProvince(Math.toDegrees(targetLat), Math.toDegrees(targetLon));
     }
 
-    /**
-     * 在列表中找最近的省份（到边界的距离）
-     */
+    // ---- 公共方法 ----
     private Province findNearestInList(double lat, double lon, List<Province> list) {
         Province nearest = null;
         double minDist = Double.MAX_VALUE;
@@ -163,58 +181,29 @@ public class ProvinceInferencer {
         return nearest;
     }
 
-    /**
-     * 找最近的省份
-     */
     public Province findNearestProvince(double lat, double lon) {
         return findNearestInList(lat, lon, provinces);
     }
 
-    /**
-     * 计算点到省份的距离（到边界的最近距离）
-     */
     private double distanceToProvince(double lat, double lon, Province p) {
-        // 如果在边界框内，距离为0
-        if (lon >= p.minLon && lon <= p.maxLon && lat >= p.minLat && lat <= p.maxLat) {
-            return 0;
-        }
-        // 否则计算到边界的距离（简化：到最近边的距离）
+        if (lon >= p.minLon && lon <= p.maxLon && lat >= p.minLat && lat <= p.maxLat) return 0;
         double dist = Double.MAX_VALUE;
-        // 到左边
-        if (lon < p.minLon) {
-            dist = Math.min(dist, haversineDistance(lat, lon, lat, p.minLon));
-        }
-        // 到右边
-        if (lon > p.maxLon) {
-            dist = Math.min(dist, haversineDistance(lat, lon, lat, p.maxLon));
-        }
-        // 到下边
-        if (lat < p.minLat) {
-            dist = Math.min(dist, haversineDistance(lat, lon, p.minLat, lon));
-        }
-        // 到上边
-        if (lat > p.maxLat) {
-            dist = Math.min(dist, haversineDistance(lat, lon, p.maxLat, lon));
-        }
+        if (lon < p.minLon) dist = Math.min(dist, haversineDistance(lat, lon, lat, p.minLon));
+        if (lon > p.maxLon) dist = Math.min(dist, haversineDistance(lat, lon, lat, p.maxLon));
+        if (lat < p.minLat) dist = Math.min(dist, haversineDistance(lat, lon, p.minLat, lon));
+        if (lat > p.maxLat) dist = Math.min(dist, haversineDistance(lat, lon, p.maxLat, lon));
         return dist;
     }
 
-    /**
-     * Haversine 距离（米）
-     */
     private double haversineDistance(double lat1, double lon1, double lat2, double lon2) {
         double dLat = Math.toRadians(lat2 - lat1);
         double dLon = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return EARTH_RADIUS * c;
+        double a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+                Math.cos(Math.toRadians(lat1))*Math.cos(Math.toRadians(lat2)) *
+                        Math.sin(dLon/2)*Math.sin(dLon/2);
+        return EARTH_RADIUS * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    /**
-     * 计算方位角（度，0-360）
-     */
     private double calculateBearing(double lat1, double lon1, double lat2, double lon2) {
         double dLon = Math.toRadians(lon2 - lon1);
         double lat1Rad = Math.toRadians(lat1);
@@ -222,15 +211,13 @@ public class ProvinceInferencer {
         double y = Math.sin(dLon) * Math.cos(lat2Rad);
         double x = Math.cos(lat1Rad) * Math.sin(lat2Rad) -
                 Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
-        double bearing = Math.toDegrees(Math.atan2(y, x));
-        return (bearing + 360) % 360;
+        return (Math.toDegrees(Math.atan2(y, x)) + 360) % 360;
     }
 
     public static class Province {
         public String name;
         public double centerLon, centerLat;
         public double minLon, maxLon, minLat, maxLat;
-
         public Province(String name, double centerLon, double centerLat,
                         double minLon, double maxLon, double minLat, double maxLat) {
             this.name = name;
@@ -255,8 +242,10 @@ public class ProvinceInferencer {
 
     public static class InferenceResult {
         public String currentProvince;
-        public String targetProvince;
-        public String direction;  // "→ 省份名"
-        public float confidence;  // 0-1
+        public String boundsProvince;
+        public String vectorProvince;
+        public String direction;
+        public double boundsDistance;
+        public float confidence;
     }
 }

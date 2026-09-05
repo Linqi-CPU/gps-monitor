@@ -15,6 +15,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -40,16 +41,15 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     private LocationManager locationManager;
     private TextView statusText;
     private TextView latValue, lonValue, accValue, altValue, spdValue;
-    private TextView provinceText;  // 省份显示
-    private Button startBtn, stopBtn, clearBtn;
+    private TextView provinceText, directionText, algoText;
+    private Button startBtn, stopBtn, clearBtn, algoBtn;
     private LinearLayout historyContainer;
-    private ImageView mapView;  // 地图
+    private ImageView mapView;
     private boolean isTracking = false;
     private List<String> historyList = new ArrayList<>();
     private Handler handler = new Handler(Looper.getMainLooper());
     private ProvinceMap provinceMap;
     private ProvinceInferencer inferencer;
-    private TextView directionText; // 方向提示
 
     @SuppressLint("MissingPermission")
     @Override
@@ -124,8 +124,14 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             // 方向提示
             LinearLayout dirField = makeField("移动方向", "静止");
             directionText = (TextView) dirField.getChildAt(1);
-            directionText.setTextColor(Color.parseColor("#ffd93d")); // 黄色
+            directionText.setTextColor(Color.parseColor("#ffd93d"));
             card.addView(dirField);
+
+            // 算法模式
+            LinearLayout algoField = makeField("算法模式", "矩形边界");
+            algoText = (TextView) algoField.getChildAt(1);
+            algoText.setTextColor(Color.parseColor("#667eea"));
+            card.addView(algoField);
 
             root.addView(card);
 
@@ -137,17 +143,20 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             startBtn = makeButton("🚀 开始定位", Color.parseColor("#667eea"));
             stopBtn = makeButton("⏹️ 停止", Color.parseColor("#ff6b6b"));
             clearBtn = makeButton("🗑️ 清空", Color.parseColor("#444444"));
+            algoBtn = makeButton("🔄 切换算法", Color.parseColor("#ffd93d"));
 
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
             p.rightMargin = spacing;
             btnRow.addView(startBtn, p);
             btnRow.addView(stopBtn, p);
-            btnRow.addView(clearBtn);
+            btnRow.addView(clearBtn, p);
+            btnRow.addView(algoBtn, p);
 
             startBtn.setOnClickListener(v -> startTracking());
             stopBtn.setOnClickListener(v -> stopTracking());
             clearBtn.setOnClickListener(v -> clearHistory());
+            algoBtn.setOnClickListener(v -> switchAlgorithm());
 
             root.addView(btnRow);
 
@@ -183,7 +192,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             setContentView(root);
             Log.d(TAG, "setContentView done");
 
-            // 初始化地图和推断器
+            // 初始化
             provinceMap = new ProvinceMap(this);
             inferencer = new ProvinceInferencer(this);
             locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -198,6 +207,32 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             Log.e(TAG, "onCreate error", e);
             Toast.makeText(this, "启动失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void switchAlgorithm() {
+        ProvinceInferencer.Algorithm current = inferencer.getAlgorithm();
+        ProvinceInferencer.Algorithm next;
+        String name;
+        switch (current) {
+            case BOUNDS:
+                next = ProvinceInferencer.Algorithm.VECTOR;
+                name = "速度矢量";
+                break;
+            case VECTOR:
+                next = ProvinceInferencer.Algorithm.HYBRID;
+                name = "混合对比";
+                break;
+            case HYBRID:
+                next = ProvinceInferencer.Algorithm.BOUNDS;
+                name = "矩形边界";
+                break;
+            default:
+                next = ProvinceInferencer.Algorithm.BOUNDS;
+                name = "矩形边界";
+        }
+        inferencer.setAlgorithm(next);
+        algoText.setText(name);
+        Toast.makeText(this, "切换到: " + name, Toast.LENGTH_SHORT).show();
     }
 
     private LinearLayout makeField(String label, String value) {
@@ -223,7 +258,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     private Button makeButton(String text, int color) {
         Button btn = new Button(this);
         btn.setText(text);
-        btn.setTextSize(16);
+        btn.setTextSize(14);
         btn.setTextColor(Color.WHITE);
         btn.setBackgroundColor(color);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
@@ -299,10 +334,23 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             altValue.setText(String.format("%.1f 米", alt));
             spdValue.setText(String.format("%.1f km/h", spd * 3.6));
 
-            // 省份推断（每10秒采样一次）
+            // 省份推断
             ProvinceInferencer.InferenceResult result = inferencer.update(lat, lon, System.currentTimeMillis());
             provinceText.setText(result.currentProvince);
             directionText.setText(result.direction.isEmpty() ? "静止" : result.direction);
+
+            // 更新算法模式显示
+            switch (inferencer.getAlgorithm()) {
+                case BOUNDS:
+                    algoText.setText("矩形边界");
+                    break;
+                case VECTOR:
+                    algoText.setText("速度矢量");
+                    break;
+                case HYBRID:
+                    algoText.setText("混合对比");
+                    break;
+            }
 
             statusText.setText("● GPS 定位成功");
             statusText.setTextColor(Color.GREEN);
@@ -315,9 +363,10 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
             // 添加到历史
             String time = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
+            String algoName = algoText.getText().toString();
             String dir = result.direction.isEmpty() ? "" : " " + result.direction;
-            String record = String.format("%s  %.6f, %.6f (%s)%s", time, lat, lon, 
-                    result.currentProvince, dir);
+            String record = String.format("%s [%s] %.6f, %.6f (%s)%s", 
+                    time, algoName, lat, lon, result.currentProvince, dir);
             historyList.add(0, record);
             if (historyList.size() > 50) historyList.remove(historyList.size() - 1);
 
