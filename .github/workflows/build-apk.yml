@@ -23,12 +23,10 @@ jobs:
           node-version: '18'
 
       - name: Setup JDK 17
-        id: setup-java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
+        run: |
+          curl -fsSL https://github.com/adoptium/temurin17-binaries/releases/latest/download/OpenJDK17U-jdk_x64_linux_hotspot.tar.gz | tar xz
+          echo "JDK_PATH=$(pwd)/jdk-17" >> $GITHUB_ENV
+        timeout-minutes: 10
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
@@ -43,13 +41,12 @@ jobs:
       - name: Build APK
         working-directory: .
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq expect
+          echo "JDK_PATH=$JDK_PATH"
           echo 'spawn bubblewrap init --manifest=manifest.json --non-interactive
           expect "Do you want Bubblewrap to install the JDK"
           send "n\r"
           expect "Path to your existing JDK 17"
-          send "/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20.1-1/x64\r"
+          send "$env(JDK_PATH)\r"
           expect eof' > init.exp
           expect init.exp
           bubblewrap build --skipSigning
