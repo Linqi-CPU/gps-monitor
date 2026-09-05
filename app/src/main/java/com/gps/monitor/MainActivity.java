@@ -48,6 +48,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     private List<String> historyList = new ArrayList<>();
     private Handler handler = new Handler(Looper.getMainLooper());
     private ProvinceMap provinceMap;
+    private ProvinceInferencer inferencer;
+    private TextView directionText; // 方向提示
 
     @SuppressLint("MissingPermission")
     @Override
@@ -119,6 +121,12 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             provinceText = (TextView) provField.getChildAt(1);
             card.addView(provField);
 
+            // 方向提示
+            LinearLayout dirField = makeField("移动方向", "静止");
+            directionText = (TextView) dirField.getChildAt(1);
+            directionText.setTextColor(Color.parseColor("#ffd93d")); // 黄色
+            card.addView(dirField);
+
             root.addView(card);
 
             // 按钮区
@@ -175,8 +183,9 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             setContentView(root);
             Log.d(TAG, "setContentView done");
 
-            // 初始化地图
+            // 初始化地图和推断器
             provinceMap = new ProvinceMap(this);
+            inferencer = new ProvinceInferencer(this);
             locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
             if (locationManager == null) {
                 Log.e(TAG, "LocationManager is null!");
@@ -290,9 +299,10 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             altValue.setText(String.format("%.1f 米", alt));
             spdValue.setText(String.format("%.1f km/h", spd * 3.6));
 
-            // 省份
-            String prov = provinceMap.getProvinceName(lat, lon);
-            provinceText.setText(prov);
+            // 省份推断（每10秒采样一次）
+            ProvinceInferencer.InferenceResult result = inferencer.update(lat, lon, System.currentTimeMillis());
+            provinceText.setText(result.currentProvince);
+            directionText.setText(result.direction.isEmpty() ? "静止" : result.direction);
 
             statusText.setText("● GPS 定位成功");
             statusText.setTextColor(Color.GREEN);
@@ -305,7 +315,9 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
             // 添加到历史
             String time = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
-            String record = String.format("%s  %.6f, %.6f (%s)", time, lat, lon, prov);
+            String dir = result.direction.isEmpty() ? "" : " " + result.direction;
+            String record = String.format("%s  %.6f, %.6f (%s)%s", time, lat, lon, 
+                    result.currentProvince, dir);
             historyList.add(0, record);
             if (historyList.size() > 50) historyList.remove(historyList.size() - 1);
 
