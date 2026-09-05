@@ -1,1 +1,2 @@
 rootProject.name = 'gps-monitor'
+include ':app'
