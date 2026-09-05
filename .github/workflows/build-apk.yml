@@ -41,15 +41,15 @@ jobs:
 
       - name: Build APK
         working-directory: .
+        env:
+          BUBBLEWRAP_JDK: $JAVA_HOME
         run: |
-          export JAVA_HOME="/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20.1-1/x64"
-          export PATH="$JAVA_HOME/bin:$PATH"
-          export BUBBLEWRAP_JDK="$JAVA_HOME"
           echo "JAVA_HOME=$JAVA_HOME"
           echo "BUBBLEWRAP_JDK=$BUBBLEWRAP_JDK"
           java -version
-          printf "No\n" | bubblewrap init --manifest=manifest.json
-          printf "No\n" | bubblewrap build --skipSigning
+          sudo ln -s "$JAVA_HOME" /usr/lib/jvm/java-17 || true
+          bubblewrap init --manifest=manifest.json --no-interactive
+          bubblewrap build --skipSigning --no-interactive
         timeout-minutes: 20
 
       - name: Upload APK

@@ -1,0 +1,7 @@
+No
+/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20.1-1/x64
+No
+.
+GPS Monitor
+com.gps.monitor
+android
