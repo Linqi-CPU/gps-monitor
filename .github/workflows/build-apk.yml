@@ -18,6 +18,7 @@ jobs:
           node-version: '18'
 
       - name: Setup JDK 17
+        id: setup-java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -31,9 +32,11 @@ jobs:
       - name: Initialize TWA project
         working-directory: ./apk-build
         env:
-          JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20.1-1/x64
+          BUBBLEWRAP_JDK: ${{ steps.setup-java.outputs.java-home }}
         run: |
-          printf 'n\n%s\n\ndebug\nandroid\nn\n' "$JAVA_HOME" | bubblewrap init --manifest=manifest.json
+          echo "JAVA_HOME=$JAVA_HOME"
+          echo "BUBBLEWRAP_JDK=$BUBBLEWRAP_JDK"
+          bubblewrap init --manifest=manifest.json --non-interactive
         timeout-minutes: 10
 
       - name: Build APK
