@@ -81,34 +81,47 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         card.setLayoutParams(cardParams);
 
         // 纬度
-        card.addView(makeField("纬度 (Latitude)", "latText", "--"));
+        latText = makeField("纬度 (Latitude)", "39.904200°");
+        card.addView(latText);
+
         // 经度
-        card.addView(makeField("经度 (Longitude)", "lonText", "--"));
+        lonText = makeField("经度 (Longitude)", "116.407400°");
+        card.addView(lonText);
+
         // 精度
-        card.addView(makeField("精度 (Accuracy)", "accText", "--"));
+        accText = makeField("精度 (Accuracy)", "--");
+        card.addView(accText);
+
         // 海拔
-        card.addView(makeField("海拔 (Altitude)", "altText", "--"));
+        altText = makeField("海拔 (Altitude)", "--");
+        card.addView(altText);
+
         // 速度
-        card.addView(makeField("速度 (Speed)", "spdText", "--"));
+        spdText = makeField("速度 (Speed)", "--");
+        card.addView(spdText);
 
         root.addView(card);
 
         // 按钮区
         LinearLayout btnRow = new LinearLayout(this);
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
-        btnRow.setSpacing(10);
+        int spacing = 10;
 
         startBtn = makeButton("🚀 开始定位", Color.parseColor("#667eea"));
         stopBtn = makeButton("⏹️ 停止", Color.parseColor("#ff6b6b"));
         clearBtn = makeButton("🗑️ 清空", Color.parseColor("#444"));
 
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        p.rightMargin = spacing;
+        btnRow.addView(startBtn, p);
+        btnRow.addView(stopBtn, p);
+        btnRow.addView(clearBtn);
+
         startBtn.setOnClickListener(v -> startTracking());
         stopBtn.setOnClickListener(v -> stopTracking());
         clearBtn.setOnClickListener(v -> clearHistory());
 
-        btnRow.addView(startBtn);
-        btnRow.addView(stopBtn);
-        btnRow.addView(clearBtn);
         root.addView(btnRow);
 
         // 历史记录标题
@@ -129,7 +142,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
     }
 
-    private LinearLayout makeField(String label, String tag, String value) {
+    private LinearLayout makeField(String label, String value) {
         LinearLayout field = new LinearLayout(this);
         field.setOrientation(LinearLayout.VERTICAL);
         
@@ -143,7 +156,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         val.setTextSize(20);
         val.setTextColor(Color.CYAN);
         val.setTypeface(null, android.graphics.Typeface.BOLD);
-        val.setTag(tag);
         
         field.addView(lbl);
         field.addView(val);
@@ -214,11 +226,11 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         float spd = location.getSpeed();
 
         // 更新 UI
-        ((TextView) findViewById(R.id.latText)).setText(String.format("%.6f°", lat));
-        ((TextView) findViewById(R.id.lonText)).setText(String.format("%.6f°", lon));
-        ((TextView) findViewById(R.id.accText)).setText(String.format("%.1f 米", acc));
-        ((TextView) findViewById(R.id.altText)).setText(String.format("%.1f 米", alt));
-        ((TextView) findViewById(R.id.spdText)).setText(String.format("%.1f km/h", spd * 3.6));
+        latText.getChildAt(1).setText(String.format("%.6f°", lat));
+        lonText.getChildAt(1).setText(String.format("%.6f°", lon));
+        accText.getChildAt(1).setText(String.format("%.1f 米", acc));
+        altText.getChildAt(1).setText(String.format("%.1f 米", alt));
+        spdText.getChildAt(1).setText(String.format("%.1f km/h", spd * 3.6));
 
         statusText.setText("● GPS 定位成功");
         statusText.setTextColor(Color.GREEN);
