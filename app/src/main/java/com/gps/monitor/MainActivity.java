@@ -148,7 +148,12 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             Log.d(TAG, "setContentView done");
 
             locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-            Log.d(TAG, "LocationManager obtained");
+            if (locationManager == null) {
+                Log.e(TAG, "LocationManager is null!");
+                Toast.makeText(this, "定位服务不可用", Toast.LENGTH_LONG).show();
+            } else {
+                Log.d(TAG, "LocationManager obtained");
+            }
             
         } catch (Exception e) {
             Log.e(TAG, "onCreate error", e);
