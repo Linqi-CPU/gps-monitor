@@ -2,6 +2,7 @@ package com.gps.monitor;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -11,6 +12,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
@@ -29,7 +31,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements LocationListener {
-
+    private static final String TAG = "GPSMonitor";
     private static final int LOCATION_PERMISSION_REQUEST = 100;
     private LocationManager locationManager;
     private TextView statusText;
@@ -44,105 +46,114 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate started");
         
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.parseColor("#1a1a2e"));
-        root.setPadding(20, 20, 20, 20);
+        try {
+            LinearLayout root = new LinearLayout(this);
+            root.setOrientation(LinearLayout.VERTICAL);
+            root.setBackgroundColor(Color.parseColor("#1a1a2e"));
+            root.setPadding(20, 20, 20, 20);
 
-        // 标题
-        TextView title = new TextView(this);
-        title.setText("📍 GPS 定位监控");
-        title.setTextSize(24);
-        title.setTextColor(Color.WHITE);
-        title.setGravity(Gravity.CENTER);
-        title.setPadding(0, 0, 0, 20);
-        root.addView(title);
+            // 标题
+            TextView title = new TextView(this);
+            title.setText("📍 GPS 定位监控");
+            title.setTextSize(24);
+            title.setTextColor(Color.WHITE);
+            title.setGravity(Gravity.CENTER);
+            title.setPadding(0, 0, 0, 20);
+            root.addView(title);
 
-        // 状态
-        statusText = new TextView(this);
-        statusText.setText("● 未定位");
-        statusText.setTextSize(16);
-        statusText.setTextColor(Color.RED);
-        statusText.setPadding(0, 0, 0, 20);
-        root.addView(statusText);
+            // 状态
+            statusText = new TextView(this);
+            statusText.setText("● 未定位");
+            statusText.setTextSize(16);
+            statusText.setTextColor(Color.RED);
+            statusText.setPadding(0, 0, 0, 20);
+            root.addView(statusText);
 
-        // 数据卡片
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackgroundColor(Color.parseColor("#16213e"));
-        card.setPadding(20, 20, 20, 20);
-        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-        cardParams.setMargins(0, 0, 0, 20);
-        card.setLayoutParams(cardParams);
+            // 数据卡片
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setBackgroundColor(Color.parseColor("#16213e"));
+            card.setPadding(20, 20, 20, 20);
+            LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            cardParams.setMargins(0, 0, 0, 20);
+            card.setLayoutParams(cardParams);
 
-        // 纬度
-        LinearLayout latField = makeField("纬度 (Latitude)", "--");
-        latValue = (TextView) latField.getChildAt(1);
-        card.addView(latField);
+            // 纬度
+            LinearLayout latField = makeField("纬度 (Latitude)", "--");
+            latValue = (TextView) latField.getChildAt(1);
+            card.addView(latField);
 
-        // 经度
-        LinearLayout lonField = makeField("经度 (Longitude)", "--");
-        lonValue = (TextView) lonField.getChildAt(1);
-        card.addView(lonField);
+            // 经度
+            LinearLayout lonField = makeField("经度 (Longitude)", "--");
+            lonValue = (TextView) lonField.getChildAt(1);
+            card.addView(lonField);
 
-        // 精度
-        LinearLayout accField = makeField("精度 (Accuracy)", "--");
-        accValue = (TextView) accField.getChildAt(1);
-        card.addView(accField);
+            // 精度
+            LinearLayout accField = makeField("精度 (Accuracy)", "--");
+            accValue = (TextView) accField.getChildAt(1);
+            card.addView(accField);
 
-        // 海拔
-        LinearLayout altField = makeField("海拔 (Altitude)", "--");
-        altValue = (TextView) altField.getChildAt(1);
-        card.addView(altField);
+            // 海拔
+            LinearLayout altField = makeField("海拔 (Altitude)", "--");
+            altValue = (TextView) altField.getChildAt(1);
+            card.addView(altField);
 
-        // 速度
-        LinearLayout spdField = makeField("速度 (Speed)", "--");
-        spdValue = (TextView) spdField.getChildAt(1);
-        card.addView(spdField);
+            // 速度
+            LinearLayout spdField = makeField("速度 (Speed)", "--");
+            spdValue = (TextView) spdField.getChildAt(1);
+            card.addView(spdField);
 
-        root.addView(card);
+            root.addView(card);
 
-        // 按钮区
-        LinearLayout btnRow = new LinearLayout(this);
-        btnRow.setOrientation(LinearLayout.HORIZONTAL);
-        int spacing = 10;
+            // 按钮区
+            LinearLayout btnRow = new LinearLayout(this);
+            btnRow.setOrientation(LinearLayout.HORIZONTAL);
+            int spacing = 10;
 
-        startBtn = makeButton("🚀 开始定位", Color.parseColor("#667eea"));
-        stopBtn = makeButton("⏹️ 停止", Color.parseColor("#ff6b6b"));
-        clearBtn = makeButton("🗑️ 清空", Color.parseColor("#444"));
+            startBtn = makeButton("🚀 开始定位", Color.parseColor("#667eea"));
+            stopBtn = makeButton("⏹️ 停止", Color.parseColor("#ff6b6b"));
+            clearBtn = makeButton("🗑️ 清空", Color.parseColor("#444"));
 
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-        p.rightMargin = spacing;
-        btnRow.addView(startBtn, p);
-        btnRow.addView(stopBtn, p);
-        btnRow.addView(clearBtn);
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+            p.rightMargin = spacing;
+            btnRow.addView(startBtn, p);
+            btnRow.addView(stopBtn, p);
+            btnRow.addView(clearBtn);
 
-        startBtn.setOnClickListener(v -> startTracking());
-        stopBtn.setOnClickListener(v -> stopTracking());
-        clearBtn.setOnClickListener(v -> clearHistory());
+            startBtn.setOnClickListener(v -> startTracking());
+            stopBtn.setOnClickListener(v -> stopTracking());
+            clearBtn.setOnClickListener(v -> clearHistory());
 
-        root.addView(btnRow);
+            root.addView(btnRow);
 
-        // 历史记录标题
-        TextView historyTitle = new TextView(this);
-        historyTitle.setText("📊 定位历史");
-        historyTitle.setTextSize(18);
-        historyTitle.setTextColor(Color.WHITE);
-        historyTitle.setPadding(0, 20, 0, 10);
-        root.addView(historyTitle);
+            // 历史记录标题
+            TextView historyTitle = new TextView(this);
+            historyTitle.setText("📊 定位历史");
+            historyTitle.setTextSize(18);
+            historyTitle.setTextColor(Color.WHITE);
+            historyTitle.setPadding(0, 20, 0, 10);
+            root.addView(historyTitle);
 
-        // 历史记录列表
-        historyContainer = new LinearLayout(this);
-        historyContainer.setOrientation(LinearLayout.VERTICAL);
-        root.addView(historyContainer);
+            // 历史记录列表
+            historyContainer = new LinearLayout(this);
+            historyContainer.setOrientation(LinearLayout.VERTICAL);
+            root.addView(historyContainer);
 
-        setContentView(root);
+            setContentView(root);
+            Log.d(TAG, "setContentView done");
 
-        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            Log.d(TAG, "LocationManager obtained");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "onCreate error", e);
+            Toast.makeText(this, "启动失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     private LinearLayout makeField(String label, String value) {
@@ -179,23 +190,29 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
     @SuppressLint("MissingPermission")
     private void startTracking() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) 
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, 
-                                Manifest.permission.ACCESS_COARSE_LOCATION},
-                    LOCATION_PERMISSION_REQUEST);
-            return;
+        try {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) 
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION, 
+                                    Manifest.permission.ACCESS_COARSE_LOCATION},
+                        LOCATION_PERMISSION_REQUEST);
+                return;
+            }
+
+            isTracking = true;
+            startBtn.setEnabled(false);
+            stopBtn.setEnabled(true);
+            statusText.setText("● 正在定位...");
+            statusText.setTextColor(Color.YELLOW);
+
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 0, this);
+            Log.d(TAG, "startTracking: location updates requested");
+        } catch (Exception e) {
+            Log.e(TAG, "startTracking error", e);
+            Toast.makeText(this, "启动定位失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
-
-        isTracking = true;
-        startBtn.setEnabled(false);
-        stopBtn.setEnabled(true);
-        statusText.setText("● 正在定位...");
-        statusText.setTextColor(Color.YELLOW);
-
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
-        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 0, this);
     }
 
     private void stopTracking() {
@@ -206,7 +223,11 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         statusText.setTextColor(Color.RED);
         
         if (locationManager != null) {
-            locationManager.removeUpdates(this);
+            try {
+                locationManager.removeUpdates(this);
+            } catch (Exception e) {
+                Log.e(TAG, "stopTracking error", e);
+            }
         }
     }
 
@@ -220,40 +241,48 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     public void onLocationChanged(@NonNull Location location) {
         if (!isTracking) return;
 
-        double lat = location.getLatitude();
-        double lon = location.getLongitude();
-        float acc = location.getAccuracy();
-        double alt = location.getAltitude();
-        float spd = location.getSpeed();
+        try {
+            double lat = location.getLatitude();
+            double lon = location.getLongitude();
+            float acc = location.getAccuracy();
+            double alt = location.getAltitude();
+            float spd = location.getSpeed();
 
-        // 更新 UI
-        latValue.setText(String.format("%.6f°", lat));
-        lonValue.setText(String.format("%.6f°", lon));
-        accValue.setText(String.format("%.1f 米", acc));
-        altValue.setText(String.format("%.1f 米", alt));
-        spdValue.setText(String.format("%.1f km/h", spd * 3.6));
+            // 更新 UI
+            latValue.setText(String.format("%.6f°", lat));
+            lonValue.setText(String.format("%.6f°", lon));
+            accValue.setText(String.format("%.1f 米", acc));
+            altValue.setText(String.format("%.1f 米", alt));
+            spdValue.setText(String.format("%.1f km/h", spd * 3.6));
 
-        statusText.setText("● GPS 定位成功");
-        statusText.setTextColor(Color.GREEN);
+            statusText.setText("● GPS 定位成功");
+            statusText.setTextColor(Color.GREEN);
 
-        // 添加到历史
-        String time = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
-        String record = String.format("%s  %.6f, %.6f", time, lat, lon);
-        historyList.add(0, record);
-        if (historyList.size() > 50) historyList.remove(historyList.size() - 1);
+            // 添加到历史
+            String time = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
+            String record = String.format("%s  %.6f, %.6f", time, lat, lon);
+            historyList.add(0, record);
+            if (historyList.size() > 50) historyList.remove(historyList.size() - 1);
 
-        // 更新历史显示
-        handler.post(() -> {
-            historyContainer.removeAllViews();
-            for (String line : historyList) {
-                TextView tv = new TextView(this);
-                tv.setText(line);
-                tv.setTextSize(12);
-                tv.setTextColor(Color.LTGRAY);
-                tv.setPadding(0, 5, 0, 5);
-                historyContainer.addView(tv);
-            }
-        });
+            // 更新历史显示
+            handler.post(() -> {
+                try {
+                    historyContainer.removeAllViews();
+                    for (String line : historyList) {
+                        TextView tv = new TextView(this);
+                        tv.setText(line);
+                        tv.setTextSize(12);
+                        tv.setTextColor(Color.LTGRAY);
+                        tv.setPadding(0, 5, 0, 5);
+                        historyContainer.addView(tv);
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "update history error", e);
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "onLocationChanged error", e);
+        }
     }
 
     @Override
