@@ -116,7 +116,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
             startBtn = makeButton("🚀 开始定位", Color.parseColor("#667eea"));
             stopBtn = makeButton("⏹️ 停止", Color.parseColor("#ff6b6b"));
-            clearBtn = makeButton("🗑️ 清空", Color.parseColor("#444"));
+            clearBtn = makeButton("🗑️ 清空", Color.parseColor("#444444"));
 
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
