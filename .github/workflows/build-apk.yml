@@ -52,3 +52,4 @@ jobs:
         with:
           name: gps-monitor-apk
           path: app/build/outputs/apk/release/*.apk
+# rerun
