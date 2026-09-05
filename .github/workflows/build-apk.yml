@@ -47,9 +47,17 @@ jobs:
           cat build.log | tail -100
         timeout-minutes: 20
 
-      - name: Upload APK
+      - name: List APK outputs
+        run: |
+          ls -la app/build/outputs/apk/ || true
+          ls -la app/build/outputs/apk/release/ || true
+          ls -la app/build/outputs/apk/debug/ || true
+        timeout-minutes: 5
+
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: gps-monitor-apk
-          path: app/build/outputs/apk/release/*.apk
-# rerun
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/debug/*.apk
