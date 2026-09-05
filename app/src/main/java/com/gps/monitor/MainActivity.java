@@ -2,20 +2,21 @@ package com.gps.monitor;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
+import android.graphics.Paint;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -24,6 +25,8 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -31,16 +34,20 @@ import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements LocationListener {
+
     private static final String TAG = "GPSMonitor";
     private static final int LOCATION_PERMISSION_REQUEST = 100;
     private LocationManager locationManager;
     private TextView statusText;
     private TextView latValue, lonValue, accValue, altValue, spdValue;
+    private TextView provinceText;  // 省份显示
     private Button startBtn, stopBtn, clearBtn;
     private LinearLayout historyContainer;
+    private ImageView mapView;  // 地图
     private boolean isTracking = false;
     private List<String> historyList = new ArrayList<>();
     private Handler handler = new Handler(Looper.getMainLooper());
+    private ProvinceMap provinceMap;
 
     @SuppressLint("MissingPermission")
     @Override
@@ -107,6 +114,11 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             spdValue = (TextView) spdField.getChildAt(1);
             card.addView(spdField);
 
+            // 省份
+            LinearLayout provField = makeField("所在省份", "未知");
+            provinceText = (TextView) provField.getChildAt(1);
+            card.addView(provField);
+
             root.addView(card);
 
             // 按钮区
@@ -131,6 +143,22 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
             root.addView(btnRow);
 
+            // 地图标题
+            TextView mapTitle = new TextView(this);
+            mapTitle.setText("🗺️ 离线地图");
+            mapTitle.setTextSize(18);
+            mapTitle.setTextColor(Color.WHITE);
+            mapTitle.setPadding(0, 20, 0, 10);
+            root.addView(mapTitle);
+
+            // 地图显示
+            mapView = new ImageView(this);
+            mapView.setBackgroundColor(Color.parseColor("#16213e"));
+            LinearLayout.LayoutParams mapParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 400);
+            mapView.setLayoutParams(mapParams);
+            root.addView(mapView);
+
             // 历史记录标题
             TextView historyTitle = new TextView(this);
             historyTitle.setText("📊 定位历史");
@@ -147,6 +175,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             setContentView(root);
             Log.d(TAG, "setContentView done");
 
+            // 初始化地图
+            provinceMap = new ProvinceMap(this);
             locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
             if (locationManager == null) {
                 Log.e(TAG, "LocationManager is null!");
@@ -260,12 +290,22 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             altValue.setText(String.format("%.1f 米", alt));
             spdValue.setText(String.format("%.1f km/h", spd * 3.6));
 
+            // 省份
+            String prov = provinceMap.getProvinceName(lat, lon);
+            provinceText.setText(prov);
+
             statusText.setText("● GPS 定位成功");
             statusText.setTextColor(Color.GREEN);
 
+            // 更新地图
+            Bitmap mapBmp = provinceMap.getMapBitmap(lat, lon);
+            if (mapBmp != null) {
+                mapView.setImageBitmap(mapBmp);
+            }
+
             // 添加到历史
             String time = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
-            String record = String.format("%s  %.6f, %.6f", time, lat, lon);
+            String record = String.format("%s  %.6f, %.6f (%s)", time, lat, lon, prov);
             historyList.add(0, record);
             if (historyList.size() > 50) historyList.remove(historyList.size() - 1);
 
