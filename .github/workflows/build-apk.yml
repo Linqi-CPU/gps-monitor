@@ -3,12 +3,11 @@ name: Build GPS Monitor APK
 on:
   push:
     paths:
-      - 'apk-build/**'
-      - 'manifest.json'
-      - 'config.xml'
-      - 'index.html'
-      - 'assets/**'
-      - '.github/workflows/build-apk.yml'
+      - 'app/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle/**'
+      - 'app/src/main/assets/**'
   workflow_dispatch:
 
 jobs:
@@ -23,6 +22,7 @@ jobs:
           node-version: '18'
 
       - name: Setup JDK 17
+        id: setup-java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -35,26 +35,19 @@ jobs:
           api-level: 34
           build-tools: 34.0.0
 
-      - name: Install Bubblewrap
-        run: npm install -g @bubblewrap/cli
-        timeout-minutes: 5
+      - name: Install Gradle
+        run: npm install -g gradle
 
-      - name: Build APK
+      - name: Build APK with Gradle
         working-directory: .
-        env:
-          BUBBLEWRAP_JDK: $JAVA_HOME
         run: |
           echo "JAVA_HOME=$JAVA_HOME"
-          echo "BUBBLEWRAP_JDK=$BUBBLEWRAP_JDK"
           java -version
-          sudo ln -s "$JAVA_HOME" /usr/lib/jvm/java-17 || true
-          bubblewrap init --manifest=manifest.json --no-interactive
-          bubblewrap build --skipSigning --no-interactive
+          gradle assembleRelease
         timeout-minutes: 20
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: gps-monitor-apk
-          path: apk-build/app-release.apk
-          retention-days: 7
+          path: app/build/outputs/apk/release/*.apk
