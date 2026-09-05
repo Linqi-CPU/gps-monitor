@@ -29,6 +29,9 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
+      - name: Install Gradle 8.2
+        run: npm install -g gradle@8.2
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
         with:
@@ -42,8 +45,7 @@ jobs:
         run: |
           echo "JAVA_HOME=$JAVA_HOME"
           java -version
-          gradle tasks --all | grep -i assemble || true
-          gradle clean
+          gradle --version
           gradle assembleRelease
           echo "=== APK output files ==="
           find app/build/outputs -name "*.apk" -type f 2>/dev/null || true
