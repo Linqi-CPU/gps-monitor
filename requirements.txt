@@ -1,0 +1,16 @@
+# GPS NMEA 解析工具依赖
+# 核心依赖（标准库，无需安装）
+# - tkinter（Python 标准库，通常已包含）
+# - argparse（Python 标准库）
+# - unittest（Python 标准库）
+# - math（Python 标准库）
+# - datetime（Python 标准库）
+
+# 测试依赖
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# 可选依赖（用于扩展功能）
+# folium>=0.14.0  # 地图可视化（可选）
+# pandas>=2.0.0   # 数据处理（可选）
+# numpy>=1.24.0   # 数值计算（可选）

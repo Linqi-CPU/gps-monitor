@@ -1,0 +1,15 @@
+{
+  "name": "gps",
+  "version": "1.0.0",
+  "description": "一个用于解析 GPS NMEA 数据、计算两点间距离和方位角，并在地图上可视化 GPS 轨迹的工具。",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
