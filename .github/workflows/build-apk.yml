@@ -29,8 +29,10 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Install Gradle 8.2
-        run: npm install -g gradle@8.2
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.2
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
