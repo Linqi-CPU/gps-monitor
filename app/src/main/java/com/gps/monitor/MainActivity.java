@@ -2,7 +2,6 @@ package com.gps.monitor;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -34,7 +33,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     private static final int LOCATION_PERMISSION_REQUEST = 100;
     private LocationManager locationManager;
     private TextView statusText;
-    private TextView latText, lonText, accText, altText, spdText;
+    private TextView latValue, lonValue, accValue, altValue, spdValue;
     private Button startBtn, stopBtn, clearBtn;
     private LinearLayout historyContainer;
     private boolean isTracking = false;
@@ -46,7 +45,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        // 主布局
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.parseColor("#1a1a2e"));
@@ -61,7 +59,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         title.setPadding(0, 0, 0, 20);
         root.addView(title);
 
-        // 状态栏
+        // 状态
         statusText = new TextView(this);
         statusText.setText("● 未定位");
         statusText.setTextSize(16);
@@ -81,24 +79,29 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         card.setLayoutParams(cardParams);
 
         // 纬度
-        latText = makeField("纬度 (Latitude)", "39.904200°");
-        card.addView(latText);
+        LinearLayout latField = makeField("纬度 (Latitude)", "--");
+        latValue = (TextView) latField.getChildAt(1);
+        card.addView(latField);
 
         // 经度
-        lonText = makeField("经度 (Longitude)", "116.407400°");
-        card.addView(lonText);
+        LinearLayout lonField = makeField("经度 (Longitude)", "--");
+        lonValue = (TextView) lonField.getChildAt(1);
+        card.addView(lonField);
 
         // 精度
-        accText = makeField("精度 (Accuracy)", "--");
-        card.addView(accText);
+        LinearLayout accField = makeField("精度 (Accuracy)", "--");
+        accValue = (TextView) accField.getChildAt(1);
+        card.addView(accField);
 
         // 海拔
-        altText = makeField("海拔 (Altitude)", "--");
-        card.addView(altText);
+        LinearLayout altField = makeField("海拔 (Altitude)", "--");
+        altValue = (TextView) altField.getChildAt(1);
+        card.addView(altField);
 
         // 速度
-        spdText = makeField("速度 (Speed)", "--");
-        card.addView(spdText);
+        LinearLayout spdField = makeField("速度 (Speed)", "--");
+        spdValue = (TextView) spdField.getChildAt(1);
+        card.addView(spdField);
 
         root.addView(card);
 
@@ -169,9 +172,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         btn.setTextColor(Color.WHITE);
         btn.setBackgroundColor(color);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                0, 
-                LinearLayout.LayoutParams.WRAP_CONTENT, 
-                1);
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         btn.setLayoutParams(params);
         return btn;
     }
@@ -226,11 +227,11 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         float spd = location.getSpeed();
 
         // 更新 UI
-        latText.getChildAt(1).setText(String.format("%.6f°", lat));
-        lonText.getChildAt(1).setText(String.format("%.6f°", lon));
-        accText.getChildAt(1).setText(String.format("%.1f 米", acc));
-        altText.getChildAt(1).setText(String.format("%.1f 米", alt));
-        spdText.getChildAt(1).setText(String.format("%.1f km/h", spd * 3.6));
+        latValue.setText(String.format("%.6f°", lat));
+        lonValue.setText(String.format("%.6f°", lon));
+        accValue.setText(String.format("%.1f 米", acc));
+        altValue.setText(String.format("%.1f 米", alt));
+        spdValue.setText(String.format("%.1f km/h", spd * 3.6));
 
         statusText.setText("● GPS 定位成功");
         statusText.setTextColor(Color.GREEN);
