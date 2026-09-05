@@ -48,7 +48,7 @@ jobs:
           echo "JAVA_HOME=$JAVA_HOME"
           java -version
           gradle --version
-          gradle assembleRelease
+          gradle assembleDebug
           echo "=== APK output files ==="
           find app/build/outputs -name "*.apk" -type f 2>/dev/null || true
         timeout-minutes: 20
