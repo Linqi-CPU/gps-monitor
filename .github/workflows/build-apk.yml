@@ -4,6 +4,11 @@ on:
   push:
     paths:
       - 'apk-build/**'
+      - 'manifest.json'
+      - 'config.xml'
+      - 'index.html'
+      - 'assets/**'
+      - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
 jobs:
@@ -25,23 +30,23 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+        with:
+          api-level: 34
+          build-tools: 34.0.0
+
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
         timeout-minutes: 5
 
-      - name: Initialize TWA project
-        working-directory: ./apk-build
+      - name: Build APK
+        working-directory: .
         env:
           BUBBLEWRAP_JDK: ${{ steps.setup-java.outputs.java-home }}
         run: |
-          echo "JAVA_HOME=$JAVA_HOME"
           echo "BUBBLEWRAP_JDK=$BUBBLEWRAP_JDK"
-          bubblewrap init --manifest=manifest.json --non-interactive
-        timeout-minutes: 10
-
-      - name: Build APK
-        working-directory: ./apk-build
-        run: bubblewrap build --skipSigning
+          bubblewrap build --skipSigning
         timeout-minutes: 20
 
       - name: Upload APK

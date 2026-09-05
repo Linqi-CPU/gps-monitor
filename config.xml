@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<widget xmlns     = "http://www.w3.org/ns/widgets"
+        xmlns:gap = "http://phonegap.com/ns/1.0"
+        id        = "com.gps.monitor"
+        version   = "1.0.0">
+    <name>GPS 定位监控</name>
+
+    <description>
+        实时 GPS 定位监控，显示经纬度坐标和地图轨迹
+    </description>
+
+    <author href="http://example.com" email="user@example.com">
+        GPS Monitor
+    </author>
+
+    <gap:plugin name="cordova-plugin-geolocation" source="npm" />
+    <gap:plugin name="cordova-plugin-whitelist" source="npm" />
+    <gap:plugin name="cordova-plugin-background-mode" source="npm" />
+    <gap:plugin name="cordova-plugin-screen-orientation" source="npm" />
+
+    <preference name="Orientation" value="portrait" />
+    <preference name="Fullscreen" value="false" />
+    <preference name="BackgroundColor" value="#667eea" />
+    <preference name="StatusBarBackgroundColor" value="#667eea" />
+    <preference name="StatusBarStyle" value="lightcontent" />
+
+    <access origin="*" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+    <allow-intent href="tel:*" />
+    <allow-intent href="sms:*" />
+    <allow-intent href="mailto:*" />
+    <allow-intent href="geo:*" />
+
+    <content src="index.html" />
+    <icon src="assets/icon-96.png" gap:platform="android" density="ldpi" />
+    <icon src="assets/icon-144.png" gap:platform="android" density="mdpi" />
+    <icon src="assets/icon-192.png" gap:platform="android" density="hdpi" />
+    <icon src="assets/icon-512.png" gap:platform="android" density="xhdpi" />
+</widget>
