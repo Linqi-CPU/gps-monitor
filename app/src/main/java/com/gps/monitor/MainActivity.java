@@ -37,29 +37,18 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
-                // Auto-grant geolocation permission for the GPS monitor URL
-                if (origin.contains("10.102.105.251") || origin.contains("localhost")) {
-                    callback.invoke(origin, true, false);
-                } else {
-                    new AlertDialog.Builder(MainActivity.this)
-                            .setTitle("位置权限")
-                            .setMessage("允许 " + origin + " 获取您的位置信息吗？")
-                            .setPositiveButton("允许", (dialog, which) -> callback.invoke(origin, true, false))
-                            .setNegativeButton("拒绝", (dialog, which) -> callback.invoke(origin, false, false))
-                            .show();
-                }
+                // Auto-grant geolocation permission for local GPS monitor
+                callback.invoke(origin, true, false);
+            }
+
+            @Override
+            public void onPermissionRequest(final android.webkit.PermissionRequest request) {
+                request.grant(request.getResources());
             }
         });
 
-        // Request location permission at runtime
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
-                    LOCATION_PERMISSION_REQUEST);
-        }
-
-        webView.loadUrl("http://10.102.105.251:8080/gps_monitor.html");
+        // Load local HTML from assets
+        webView.loadUrl("file:///android_asset/gps_monitor.html");
     }
 
     @Override
